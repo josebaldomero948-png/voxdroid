@@ -1,0 +1,658 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="theme-color" content="#0b0f19" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <title>VoxDroid Pro — Android Voice Changer</title>
+  <style>
+    :root {
+      --bg: #0b0f19;
+      --card: #151c2c;
+      --card-border: #26324d;
+      --text: #f1f5f9;
+      --muted: #94a3b8;
+      --accent: #38bdf8;
+      --accent-glow: rgba(56, 189, 248, 0.25);
+      --danger: #ef4444;
+      --danger-glow: rgba(239, 68, 68, 0.35);
+      --success: #10b981;
+      --warning: #f59e0b;
+      --purple: #a855f7;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      padding: 12px;
+      padding-bottom: 40px;
+      max-width: 540px;
+      margin: 0 auto;
+      overflow-x: hidden;
+    }
+
+    /* Top Header */
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 14px;
+      background: var(--card);
+      border: 1px solid var(--card-border);
+      border-radius: 16px;
+      margin-bottom: 12px;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .brand-icon {
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      background: linear-gradient(135deg, #38bdf8, #818cf8);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      box-shadow: 0 4px 12px var(--accent-glow);
+    }
+    .brand h1 {
+      font-size: 17px;
+      font-weight: 800;
+      letter-spacing: -0.3px;
+    }
+    .brand p {
+      font-size: 11px;
+      color: var(--muted);
+    }
+    .header-actions {
+      display: flex;
+      gap: 6px;
+    }
+
+    /* Buttons */
+    button, .file-label {
+      border: 1px solid var(--card-border);
+      background: #1e293b;
+      color: var(--text);
+      padding: 9px 12px;
+      border-radius: 11px;
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      transition: transform 0.08s ease, background 0.15s ease, border-color 0.15s ease;
+    }
+    button:active, .file-label:active {
+      transform: scale(0.96);
+    }
+    button:disabled {
+      opacity: 0.4;
+      pointer-events: none;
+    }
+    .btn-accent {
+      background: linear-gradient(135deg, #0284c7, #2563eb);
+      border-color: #38bdf8;
+    }
+    .btn-success {
+      background: linear-gradient(135deg, #059669, #10b981);
+      border-color: #34d399;
+    }
+    .btn-danger {
+      background: linear-gradient(135deg, #dc2626, #ef4444);
+      border-color: #f87171;
+    }
+    .btn-warning {
+      background: linear-gradient(135deg, #d97706, #f59e0b);
+      border-color: #fbbf24;
+      color: #000;
+    }
+
+    /* Status Toast Bar */
+    .status-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: rgba(15, 23, 42, 0.9);
+      border: 1px solid var(--card-border);
+      border-radius: 12px;
+      padding: 8px 12px;
+      margin-bottom: 12px;
+      font-size: 12px;
+    }
+    .status-dot {
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      background: var(--success);
+      display: inline-block;
+      margin-right: 7px;
+      box-shadow: 0 0 8px var(--success);
+    }
+    .status-dot.rec {
+      background: var(--danger);
+      box-shadow: 0 0 10px var(--danger);
+      animation: pulse 1s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); opacity: 1; }
+      50% { transform: scale(1.25); opacity: 0.65; }
+    }
+
+    /* Cards */
+    .card {
+      background: var(--card);
+      border: 1px solid var(--card-border);
+      border-radius: 16px;
+      padding: 14px;
+      margin-bottom: 12px;
+    }
+    .card-title {
+      font-size: 12px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      color: var(--muted);
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    /* Visualizer */
+    .vis-wrap {
+      position: relative;
+      height: 96px;
+      background: #070a12;
+      border-radius: 12px;
+      border: 1px solid #1e293b;
+      overflow: hidden;
+      margin-bottom: 12px;
+    }
+    canvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+    .vis-overlay {
+      position: absolute;
+      top: 8px;
+      left: 10px;
+      right: 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      pointer-events: none;
+    }
+    .vis-badge {
+      background: rgba(15, 23, 42, 0.85);
+      border: 1px solid #334155;
+      padding: 3px 8px;
+      border-radius: 6px;
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--accent);
+      pointer-events: auto;
+      cursor: pointer;
+    }
+
+    /* Main Transport Controls */
+    .transport-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+    .transport-grid-sub {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 6px;
+    }
+    .btn-record {
+      background: #271722;
+      border-color: #7f1d1d;
+      color: #fca5a5;
+      padding: 13px;
+      font-size: 14px;
+    }
+    .btn-record.recording {
+      background: var(--danger);
+      border-color: #fecaca;
+      color: #fff;
+      box-shadow: 0 0 18px var(--danger-glow);
+      animation: pulse 1.1s infinite;
+    }
+    .btn-play {
+      padding: 13px;
+      font-size: 14px;
+    }
+
+    /* Live Call Hub */
+    .live-hub {
+      border-color: #1e3a5f;
+      background: linear-gradient(180deg, #131c31 0%, #151c2c 100%);
+    }
+    .live-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+    .btn-live-active {
+      background: var(--danger) !important;
+      border-color: #fca5a5 !important;
+      color: #fff !important;
+      box-shadow: 0 0 15px var(--danger-glow);
+    }
+    .routing-pills {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+    .pill {
+      padding: 8px;
+      border-radius: 10px;
+      text-align: center;
+      font-size: 11px;
+      font-weight: 700;
+      background: #0f172a;
+      border: 1px solid #26324d;
+      cursor: pointer;
+    }
+    .pill.active {
+      background: rgba(56, 189, 248, 0.15);
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+
+    /* Preset Tabs & Grid */
+    .tabs {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px;
+      margin-bottom: 10px;
+    }
+    .tab-btn {
+      padding: 9px;
+      border-radius: 10px;
+      font-size: 12px;
+      background: #0f172a;
+    }
+    .tab-btn.active {
+      background: var(--accent);
+      color: #090d16;
+      border-color: var(--accent);
+    }
+    .preset-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+    }
+    .preset-card {
+      background: #0f172a;
+      border: 1px solid #26324d;
+      border-radius: 12px;
+      padding: 10px 6px;
+      text-align: center;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+    }
+    .preset-card.active {
+      border-color: var(--accent);
+      background: rgba(56, 189, 248, 0.14);
+      box-shadow: 0 0 12px var(--accent-glow);
+    }
+    .preset-icon {
+      font-size: 20px;
+    }
+    .preset-name {
+      font-size: 11px;
+      font-weight: 700;
+    }
+    .preset-desc {
+      font-size: 9.5px;
+      color: var(--muted);
+    }
+
+    /* Sliders */
+    .slider-row {
+      margin-bottom: 10px;
+    }
+    .slider-header {
+      display: flex;
+      justify-content: space-between;
+      font-size: 12px;
+      margin-bottom: 4px;
+    }
+    .slider-val {
+      color: var(--accent);
+      font-weight: 700;
+      font-variant-numeric: tabular-nums;
+    }
+    input[type="range"] {
+      width: 100%;
+      accent-color: var(--accent);
+      height: 6px;
+      border-radius: 4px;
+      background: #0f172a;
+      cursor: pointer;
+    }
+
+    /* Modals */
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(3, 7, 18, 0.82);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+      z-index: 100;
+    }
+    .modal-backdrop.open {
+      display: flex;
+    }
+    .modal {
+      background: var(--card);
+      border: 1px solid var(--card-border);
+      border-radius: 18px;
+      max-width: 440px;
+      width: 100%;
+      padding: 18px;
+      max-height: 85vh;
+      overflow-y: auto;
+    }
+    .modal h2 {
+      font-size: 16px;
+      margin-bottom: 10px;
+    }
+    .perm-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px;
+      background: #0f172a;
+      border: 1px solid #26324d;
+      border-radius: 10px;
+      margin-bottom: 8px;
+      font-size: 12px;
+    }
+    .badge-ok {
+      color: var(--success);
+      font-weight: 700;
+    }
+    .badge-warn {
+      color: var(--warning);
+      font-weight: 700;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top Header -->
+  <header class="header">
+    <div class="brand">
+      <div class="brand-icon">🎛️</div>
+      <div>
+        <h1>VoxDroid Pro</h1>
+        <p>Real-Time Android Voice Studio</p>
+      </div>
+    </div>
+    <div class="header-actions">
+      <button id="btnPhoneAccess" title="Phone Permissions & Settings">⚙️ Phone</button>
+      <button id="btnInstallApp" class="btn-accent" title="Download & Install App">📲 Get App</button>
+    </div>
+  </header>
+
+  <!-- Live Status Bar -->
+  <div class="status-bar">
+    <div>
+      <span id="statusDot" class="status-dot"></span>
+      <span id="statusText">Ready — Tap Record, Demo, or Live Mic</span>
+    </div>
+    <span id="clipDuration" style="color: var(--accent); font-weight: 700;">0.0s</span>
+  </div>
+
+  <!-- Studio Recorder & Visualizer -->
+  <section class="card">
+    <div class="vis-wrap">
+      <canvas id="visCanvas" width="480" height="96"></canvas>
+      <div class="vis-overlay">
+        <span id="btnVisMode" class="vis-badge">📊 Spectrum (Tap to Switch)</span>
+        <span id="activePresetBadge" class="vis-badge" style="color:#f8fafc;">🗣️ Normal</span>
+      </div>
+    </div>
+
+    <!-- Primary Record / Play Buttons -->
+    <div class="transport-grid">
+      <button id="btnRecord" class="btn-record">🔴 Record Mic</button>
+      <button id="btnPlay" class="btn-play btn-success" disabled>▶️ Play Voice FX</button>
+    </div>
+
+    <!-- Secondary Utility Buttons -->
+    <div class="transport-grid-sub">
+      <button id="btnDemo">🗣️ Demo</button>
+      <label class="file-label" for="fileInput">📂 Load<input id="fileInput" type="file" accept="audio/*" style="display:none" /></label>
+      <button id="btnExport" disabled>💾 Save WAV</button>
+      <button id="btnShare" disabled>📤 Share</button>
+    </div>
+  </section>
+
+  <!-- Live Call Passthrough Hub -->
+  <section class="card live-hub">
+    <div class="card-title">
+      <span>📞 Live Call Passthrough</span>
+      <span id="gateStatusBadge" style="color:var(--muted);">GATE: IDLE</span>
+    </div>
+
+    <div class="live-row">
+      <button id="btnLiveLatch">🔴 Live Mic: OFF</button>
+      <button id="btnLivePTT">🎙️ Hold PTT</button>
+      <button id="btnBleep" class="btn-warning">🤬 BLEEP!</button>
+    </div>
+
+    <div class="routing-pills">
+      <div id="pillAux" class="pill active">🎧 AUX / Headphones (Hi-Fi)</div>
+      <div id="pillSpeaker" class="pill">📱 2-Phone Speaker (Anti-Echo)</div>
+    </div>
+
+    <div class="slider-row" style="margin-bottom:0;">
+      <div class="slider-header">
+        <span>Mic Noise Gate Threshold</span>
+        <span id="valGate" class="slider-val">-45 dB</span>
+      </div>
+      <input type="range" id="sliderGate" min="-70" max="-15" step="1" value="-45" />
+    </div>
+  </section>
+
+  <!-- Voice Presets -->
+  <section class="card">
+    <div class="tabs">
+      <button id="tabSerious" class="tab-btn active">👔 Serious Human (6)</button>
+      <button id="tabFun" class="tab-btn">👹 Fun & FX Voices (6)</button>
+    </div>
+    <div id="presetGrid" class="preset-grid"></div>
+  </section>
+
+  <!-- Live DSP Sliders -->
+  <section class="card">
+    <div class="card-title">
+      <span>🎚️ Real-Time Vocal DSP Rack</span>
+      <button id="btnResetDSP" style="padding:4px 8px; font-size:10px;">Reset</button>
+    </div>
+
+    <div class="slider-row">
+      <div class="slider-header">
+        <span>Pitch Shift (Independent of Speed)</span>
+        <span id="valPitch" class="slider-val">0.0 st</span>
+      </div>
+      <input type="range" id="sliderPitch" min="-12" max="12" step="0.5" value="0" />
+    </div>
+
+    <div class="slider-row">
+      <div class="slider-header">
+        <span>Chest Resonance (135 Hz Body)</span>
+        <span id="valChest" class="slider-val">0 dB</span>
+      </div>
+      <input type="range" id="sliderChest" min="-12" max="12" step="1" value="0" />
+    </div>
+
+    <div class="slider-row">
+      <div class="slider-header">
+        <span>Vocal Brightness / Formant Clarity</span>
+        <span id="valClarity" class="slider-val">0 dB</span>
+      </div>
+      <input type="range" id="sliderClarity" min="-12" max="12" step="1" value="0" />
+    </div>
+
+    <div class="slider-row">
+      <div class="slider-header">
+        <span>Sub-Octave Demon Layer</span>
+        <span id="valSub" class="slider-val">0%</span>
+      </div>
+      <input type="range" id="sliderSub" min="0" max="100" step="5" value="0" />
+    </div>
+
+    <div class="slider-row">
+      <div class="slider-header">
+        <span>Robot Ring Modulator</span>
+        <span id="valRobot" class="slider-val">0%</span>
+      </div>
+      <input type="range" id="sliderRobot" min="0" max="100" step="5" value="0" />
+    </div>
+
+    <div class="slider-row" style="margin-bottom:0;">
+      <div class="slider-header">
+        <span>Cave Echo / Space Reverb</span>
+        <span id="valEcho" class="slider-val">0%</span>
+      </div>
+      <input type="range" id="sliderEcho" min="0" max="85" step="5" value="0" />
+    </div>
+  </section>
+
+  <!-- Phone Settings & Permissions Modal -->
+  <div id="modalPhone" class="modal-backdrop">
+    <div class="modal">
+      <h2>⚙️ Necessary Phone Access</h2>
+      <p style="font-size:12px; color:var(--muted); margin-bottom:12px;">
+        VoxDroid Pro only requests the strictly necessary Android hardware controls required for voice processing.
+      </p>
+
+      <div class="perm-item">
+        <div>
+          <strong>🎙️ Microphone Input</strong>
+          <div style="font-size:11px; color:var(--muted);">Required for recording & live call mode</div>
+        </div>
+        <button id="btnGrantMic" class="btn-accent">Grant / Test</button>
+      </div>
+
+      <div class="perm-item">
+        <div>
+          <strong>🔊 Web Audio DSP Engine</strong>
+          <div style="font-size:11px; color:var(--muted);">48kHz low-latency audio output</div>
+        </div>
+        <span id="audioStateBadge" class="badge-ok">Active</span>
+      </div>
+
+      <div class="perm-item">
+        <div>
+          <strong>☀️ Screen Keep-Awake</strong>
+          <div style="font-size:11px; color:var(--muted);">Prevents phone lock during live calls</div>
+        </div>
+        <button id="btnToggleWake">Enable</button>
+      </div>
+
+      <div class="perm-item">
+        <div>
+          <strong>📳 Touch Haptic Feedback</strong>
+          <div style="font-size:11px; color:var(--muted);">Vibrates on button presses</div>
+        </div>
+        <button id="btnTestVibe">Test Pulse</button>
+      </div>
+
+      <div style="display:flex; justify-content:flex-end; margin-top:12px;">
+        <button id="btnClosePhoneModal" class="btn-success">Done</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Install / Download Modal -->
+  <div id="modalInstall" class="modal-backdrop">
+    <div class="modal">
+      <h2>📲 Install VoxDroid Pro on Android</h2>
+      <p style="font-size:12px; color:var(--muted); margin-bottom:12px;">
+        Your standalone app file has been prepared. Follow these quick steps to add it to your Android Home Screen:
+      </p>
+      <div class="perm-item" style="display:block;">
+        <strong>1. Download Single-File App</strong>
+        <p style="font-size:11px; color:var(--muted); margin:4px 0 8px;">Save <code>VoxDroid-Pro.html</code> directly to your phone's Downloads folder.</p>
+        <button id="btnDownloadHTML" class="btn-accent" style="width:100%;">⬇️ Download VoxDroid-Pro.html</button>
+      </div>
+      <div class="perm-item" style="display:block;">
+        <strong>2. Add to Home Screen</strong>
+        <p style="font-size:11px; color:var(--muted); margin-top:4px;">
+          Open this page in <strong>Google Chrome</strong> on Android, tap the <strong>⋮ (three dots)</strong> menu in the top-right corner, and tap <strong>Add to Home screen</strong> or <strong>Install app</strong>.
+        </p>
+      </div>
+      <div style="display:flex; justify-content:flex-end; margin-top:12px;">
+        <button id="btnCloseInstallModal" class="btn-success">Got It</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // --- HAPTIC HELPER ---
+    function vibrate(ms = 18) {
+      if (navigator.vibrate) {
+        try { navigator.vibrate(ms); } catch (e) {}
+      }
+    }
+
+    // --- PRESETS DATABASE ---
+    const PRESETS = {
+      serious: [
+        { id: 'normal', name: 'Normal', icon: '🗣️', desc: 'Clean Studio', pitch: 0, chest: 0, clarity: 0, sub: 0, robot: 0, echo: 0 },
+        { id: 'baritone', name: 'Deep Masc', icon: '🧔', desc: 'Warm Baritone', pitch: -3.5, chest: 6, clarity: 2, sub: 10, robot: 0, echo: 0 },
+        { id: 'feminine', name: 'Soft Fem', icon: '👩', desc: 'Bright & Airy', pitch: 3.5, chest: -5, clarity: 6, sub: 0, robot: 0, echo: 0 },
+        { id: 'trailer', name: 'Movie Voice', icon: '🎬', desc: 'Booming Bass', pitch: -4.5, chest: 9, clarity: 5, sub: 25, robot: 0, echo: 15 },
+        { id: 'witness', name: 'Anon Mask', icon: '🕵️', desc: 'TV Disguise', pitch: -5.5, chest: 4, clarity: -4, sub: 15, robot: 0, echo: 0 },
+        { id: 'radio', name: 'Podcast FM', icon: '🎙️', desc: 'Broadcast EQ', pitch: -1.5, chest: 5, clarity: 5, sub: 0, robot: 0, echo: 5 }
+      ],
+      fun: [
+        { id: 'demon', name: 'Abyss Demon', icon: '👹', desc: 'Dark Overlord', pitch: -6.5, chest: 10, clarity: -2, sub: 80, robot: 15, echo: 45 },
+        { id: 'squeaky', name: 'Helium Squeak', icon: '🐿️', desc: 'High Chipmunk', pitch: 9.0, chest: -8, clarity: 7, sub: 0, robot: 0, echo: 0 },
+        { id: 'robot', name: 'Cyborg Mech', icon: '🤖', desc: 'Metallic Ring', pitch: -1.0, chest: 2, clarity: 4, sub: 10, robot: 85, echo: 20 },
+        { id: 'alien', name: 'Alien Hive', icon: '👽', desc: 'Warped Space', pitch: 5.5, chest: -4, clarity: 6, sub: 30, robot: 55, echo: 40 },
+        { id: 'ghost', name: 'Poltergeist', icon: '👻', desc: 'Haunted Echo', pitch: -3.0, chest: -4, clarity: 8, sub: 40, robot: 20, echo: 75 },
+        { id: 'monster', name: 'Cave Titan', icon: '🧌', desc: 'Giant Growl', pitch: -8.0, chest: 12, clarity: -3, sub: 65, robot: 0, echo: 55 }
+      ]
+    };
+
+    // --- STATE ---
+    let currentTab = 'serious';
+    let activePreset = PRESETS.serious[0];
+    let dsp = { pitch: 0, chest: 0, clarity: 0, sub: 0, robot: 0, echo: 0, gate: -45 };
+    let visMode = 'spectrum'; // 'spectrum' or 'wave'
+   
